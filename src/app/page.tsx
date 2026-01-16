@@ -14,8 +14,17 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Search } from "lucide-react";
+import { Search, Loader2 } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
+
+export interface Product {
+  code: string;
+  product: string;
+  remarks: string;
+  unit: string;
+  price: number | null;
+  hasPhoto: boolean;
+}
 
 // Product categories
 const categories = [
@@ -57,40 +66,6 @@ const categories = [
   { code: "99", name: "어구, 속구" },
 ];
 
-// Sample product data based on the original site
-const sampleProducts = [
-  { code: "110101", product: "건강자전거, 헬스사이클, STATIONARY BICYCLE INDOOR USE", remarks: "", unit: "SET", price: null, hasPhoto: true },
-  { code: "110102", product: "건강자전거, 헬스사이클, STATIONARY BICYCLE WITH ERGOMETER", remarks: "", unit: "SET", price: null, hasPhoto: true },
-  { code: "110103", product: "러닝머신, TREADMILL (RUNNING MACHINE), FOLDABLE, AC 110V", remarks: "", unit: "SET", price: null, hasPhoto: true },
-  { code: "110104", product: "러닝머신, TREADMILL (RUNNING MACHINE), FOLDABLE, AC 220V", remarks: "", unit: "SET", price: null, hasPhoto: true },
-  { code: "110105", product: "구형모델, 구형, 일륜차, OLD MODEL, OLD, MONOCYCLE", remarks: "", unit: "PC", price: null, hasPhoto: false },
-  { code: "110106", product: "러닝머신, TREADMILL (RUNNING MACHINE), NON-FOLDABLE, AC 110V", remarks: "", unit: "SET", price: null, hasPhoto: true },
-  { code: "110107", product: "러닝머신, TREADMILL (RUNNING MACHINE), NON-FOLDABLE, AC 220V", remarks: "", unit: "SET", price: null, hasPhoto: true },
-  { code: "110108", product: "복합 실내 자전거, CROSS TRAINER", remarks: "", unit: "SET", price: null, hasPhoto: true },
-  { code: "110109", product: "복합 실내 자전거, ELLIPTICAL TRAINER", remarks: "", unit: "SET", price: null, hasPhoto: true },
-  { code: "110110", product: "노 젓기, EXERCISER ROWING INDOOR USE", remarks: "", unit: "SET", price: null, hasPhoto: true },
-  { code: "110111", product: "종합운동기구, MULTI GYM STATION, INDOOR USE", remarks: "(2022-04)", unit: "SET", price: 569250, hasPhoto: true },
-  { code: "110112", product: "윗몸일으키기, INCLINE / DECLINE BENCH", remarks: "", unit: "SET", price: null, hasPhoto: true },
-  { code: "110113", product: "윗몸일으키기, ABDOMINAL BENCH", remarks: "", unit: "SET", price: null, hasPhoto: true },
-  { code: "110114", product: "운동 매트, EXERCISE MAT", remarks: "", unit: "PC", price: null, hasPhoto: false },
-  { code: "110115", product: "들어올리기 벨트, WEIGHT LIFTING BELT (NEED WANTED SIZE)", remarks: "XPODIUM KaKi, XL Size (2025-3)", unit: "PC", price: 55200, hasPhoto: true },
-  { code: "110116", product: "짐볼, EXERCISE BLL (GYM BALL)", remarks: "", unit: "PC", price: null, hasPhoto: false },
-  { code: "110117", product: "푸시업 바, PUSH-UP BAR", remarks: "", unit: "PR", price: null, hasPhoto: false },
-  { code: "110118", product: "운동바퀴, EXERCISE WHEEL", remarks: "", unit: "PC", price: null, hasPhoto: false },
-  { code: "110119", product: "악력기, HAND GRIP", remarks: "(2020-3)", unit: "PC", price: 4600, hasPhoto: true },
-  { code: "110120", product: "구형 모델, 역기, 바벨, OLD MODEL: BARBELL SET", remarks: "(2022-04)", unit: "SET", price: 164450, hasPhoto: true },
-  { code: "110121", product: "역기, 바벨, BARBELL BAR", remarks: "(2022-04)", unit: "PC", price: 69580, hasPhoto: true },
-  { code: "110122", product: "역기, 던벨, DUMBBELL SET", remarks: "(2022-04)", unit: "SET", price: 202400, hasPhoto: true },
-  { code: "110123", product: "구형 모델, 역기, 바벨, OLD MODEL: BARBELL DISC", remarks: "(NEED WANTED WEIGHT)", unit: "PC", price: null, hasPhoto: false },
-  { code: "110124", product: "역기, 스파인 벤치, SPINE PRESS BENCH", remarks: "(2022-04)", unit: "SET", price: 158130, hasPhoto: true },
-  { code: "110125", product: "역기, 바벨, BARBELL DISC, CAST IRON, 1.25 KG (2'S)", remarks: "", unit: "PR", price: null, hasPhoto: false },
-  { code: "110126", product: "역기, 바벨 스텐드, BARBELL STAND", remarks: "", unit: "SET", price: null, hasPhoto: false },
-  { code: "110127", product: "줄넘기, SKIPPING ROPE", remarks: "(2020-3)", unit: "PC", price: 4600, hasPhoto: true },
-  { code: "110128", product: "발목용 모래주머니, ANKLE WEIGHT (NEED WANTED WEIGHT)", remarks: "0.5 kg 2pc/Set (2021-3)", unit: "PR", price: 20700, hasPhoto: true },
-  { code: "110129", product: "손목용 모래주머니, WRIST WEIGHT (NEED WANTED WEIGHT)", remarks: "", unit: "PR", price: null, hasPhoto: false },
-  { code: "110130", product: "권투장비,박싱 스탠드, BOXING STAND", remarks: "", unit: "SET", price: null, hasPhoto: true },
-];
-
 export default function Home() {
   const router = useRouter();
   const [authenticated, setAuthenticated] = useState(false);
@@ -100,6 +75,8 @@ export default function Home() {
   const [codeNumber, setCodeNumber] = useState("");
   const [onlyWithPrice, setOnlyWithPrice] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
   const itemsPerPage = 30;
 
   useEffect(() => {
@@ -112,12 +89,34 @@ export default function Home() {
     }
   }, [router]);
 
+  // Fetch products when category changes
+  useEffect(() => {
+    if (!authenticated) return;
+
+    const fetchProducts = async () => {
+      setLoading(true);
+      try {
+        const response = await fetch(`/api/products?category=${selectedCategory}`);
+        const data = await response.json();
+        setProducts(data.products || []);
+        setCurrentPage(1); // Reset to first page when category changes
+      } catch (error) {
+        console.error("Error fetching products:", error);
+        setProducts([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProducts();
+  }, [selectedCategory, authenticated]);
+
   if (!authenticated) {
     return null;
   }
 
   // Filter products
-  let filteredProducts = sampleProducts.filter((product) => {
+  let filteredProducts = products.filter((product) => {
     if (keyword && !product.product.toLowerCase().includes(keyword.toLowerCase())) {
       return false;
     }
@@ -323,47 +322,54 @@ export default function Home() {
 
           {/* Product Table */}
           <div className="bg-card rounded-lg border border-border overflow-hidden">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-24">코드번호</TableHead>
-                  <TableHead className="min-w-[400px]">제품</TableHead>
-                  <TableHead className="w-48">비고</TableHead>
-                  <TableHead className="w-24">단위</TableHead>
-                  <TableHead className="w-32 text-right">
-                    가격({priceUnit === "KRW" ? "WON" : priceUnit === "USD" ? "$" : "¥"})
-                  </TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {paginatedProducts.length === 0 ? (
+            {loading ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                <span className="ml-2 text-muted-foreground">데이터를 불러오는 중...</span>
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
-                      검색 결과가 없습니다.
-                    </TableCell>
+                    <TableHead className="w-24">코드번호</TableHead>
+                    <TableHead className="min-w-[400px]">제품</TableHead>
+                    <TableHead className="w-48">비고</TableHead>
+                    <TableHead className="w-24">단위</TableHead>
+                    <TableHead className="w-32 text-right">
+                      가격({priceUnit === "KRW" ? "WON" : priceUnit === "USD" ? "$" : "¥"})
+                    </TableHead>
                   </TableRow>
-                ) : (
-                  paginatedProducts.map((product) => (
-                    <TableRow key={product.code}>
-                      <TableCell className="font-medium">
-                        <div className="flex items-center gap-2">
-                          {product.hasPhoto && (
-                            <div className="w-3 h-3 bg-red-500 rounded-sm"></div>
-                          )}
-                          {product.code}
-                        </div>
-                      </TableCell>
-                      <TableCell>{product.product}</TableCell>
-                      <TableCell className="text-muted-foreground">{product.remarks}</TableCell>
-                      <TableCell>{product.unit}</TableCell>
-                      <TableCell className="text-right font-medium">
-                        {formatPrice(product.price)}
+                </TableHeader>
+                <TableBody>
+                  {paginatedProducts.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                        검색 결과가 없습니다.
                       </TableCell>
                     </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
+                  ) : (
+                    paginatedProducts.map((product) => (
+                      <TableRow key={product.code}>
+                        <TableCell className="font-medium">
+                          <div className="flex items-center gap-2">
+                            {product.hasPhoto && (
+                              <div className="w-3 h-3 bg-red-500 rounded-sm"></div>
+                            )}
+                            {product.code}
+                          </div>
+                        </TableCell>
+                        <TableCell>{product.product}</TableCell>
+                        <TableCell className="text-muted-foreground">{product.remarks}</TableCell>
+                        <TableCell>{product.unit}</TableCell>
+                        <TableCell className="text-right font-medium">
+                          {formatPrice(product.price)}
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            )}
           </div>
         </div>
       </main>
