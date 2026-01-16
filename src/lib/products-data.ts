@@ -12,7 +12,7 @@ export interface ProductsByCategory {
 }
 
 // Complete product data organized by category
-// This data should be populated from scraping http://www.space-marine.co.kr/index.html
+// All product data is stored locally in this file
 export const productsByCategory: ProductsByCategory = {
   "00": [
     { code: "000101", product: "쌀, RICE", remarks: "", unit: "KG", price: null, hasPhoto: false },

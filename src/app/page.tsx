@@ -14,9 +14,10 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Search, Loader2, LogOut } from "lucide-react";
+import { Search, Loader2, LogOut, Info } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { isAuthenticated, logout, getCurrentUser } from "@/lib/auth";
+import { formatCurrency, getCurrencyRate, getExchangeRateText, currencyRates } from "@/lib/currency";
 
 export interface Product {
   code: string;
@@ -138,15 +139,7 @@ export default function Home() {
   const paginatedProducts = filteredProducts.slice(startIndex, startIndex + itemsPerPage);
 
   const formatPrice = (price: number | null) => {
-    if (price === null) return "";
-    if (priceUnit === "KRW") {
-      return price.toLocaleString("ko-KR");
-    } else if (priceUnit === "USD") {
-      return `$${(price / 1300).toFixed(2)}`;
-    } else if (priceUnit === "JPY") {
-      return `¥${Math.round(price / 10)}`;
-    }
-    return price.toLocaleString();
+    return formatCurrency(price, priceUnit);
   };
 
   const handleSearch = () => {
@@ -171,26 +164,40 @@ export default function Home() {
             <h3 className="text-sm font-semibold text-foreground mb-3">가격단위</h3>
             <RadioGroup value={priceUnit} onValueChange={setPriceUnit}>
               <div className="space-y-2">
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="KRW" id="krw" />
-                  <label htmlFor="krw" className="text-sm cursor-pointer text-foreground">
-                    대한민국 (₩)
-                  </label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="USD" id="usd" />
-                  <label htmlFor="usd" className="text-sm cursor-pointer text-foreground">
-                    US ($)
-                  </label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="JPY" id="jpy" />
-                  <label htmlFor="jpy" className="text-sm cursor-pointer text-foreground">
-                    Japan (¥)
-                  </label>
-                </div>
+                {currencyRates.map((currency) => (
+                  <div key={currency.code} className="flex items-center space-x-2">
+                    <RadioGroupItem value={currency.code} id={currency.code.toLowerCase()} />
+                    <label 
+                      htmlFor={currency.code.toLowerCase()} 
+                      className="text-sm cursor-pointer text-foreground flex-1"
+                    >
+                      {currency.name} ({currency.symbol})
+                    </label>
+                  </div>
+                ))}
               </div>
             </RadioGroup>
+            
+            {/* Exchange Rate Display */}
+            <div className="mt-4 p-3 rounded-md bg-muted/50 border border-border">
+              <div className="flex items-start gap-2">
+                <Info className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+                <div className="flex-1">
+                  <p className="text-xs font-medium text-foreground mb-1">환율 정보</p>
+                  <p className="text-xs text-muted-foreground">
+                    {getExchangeRateText(priceUnit)}
+                  </p>
+                  {priceUnit !== "KRW" && (
+                    <div className="mt-2 pt-2 border-t border-border">
+                      <p className="text-xs text-muted-foreground">
+                        모든 가격은 KRW 기준으로 표시됩니다
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+            
             <Button className="mt-3 w-full" size="sm" variant="outline">
               변경
             </Button>
@@ -362,7 +369,7 @@ export default function Home() {
                     <TableHead className="w-48">비고</TableHead>
                     <TableHead className="w-24">단위</TableHead>
                     <TableHead className="w-32 text-right">
-                      가격({priceUnit === "KRW" ? "WON" : priceUnit === "USD" ? "$" : "¥"})
+                      가격({getCurrencyRate(priceUnit)?.displayName || priceUnit})
                     </TableHead>
                   </TableRow>
                 </TableHeader>
