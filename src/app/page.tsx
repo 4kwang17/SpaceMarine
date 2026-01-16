@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/table";
 import { Search, Loader2, LogOut, Info } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { ClientClock } from "@/components/client-clock";
 import { isAuthenticated, logout, getCurrentUser } from "@/lib/auth";
 import { formatCurrency, getCurrencyRate, getExchangeRateText, currencyRates } from "@/lib/currency";
 
@@ -159,6 +160,9 @@ export default function Home() {
       {/* Left Sidebar */}
       <aside className="w-64 bg-card border-r border-border overflow-y-auto">
         <div className="p-4 space-y-6">
+          {/* Client Clock */}
+          <ClientClock />
+          
           {/* Price Unit Selection */}
           <div>
             <h3 className="text-sm font-semibold text-foreground mb-3">가격단위</h3>
