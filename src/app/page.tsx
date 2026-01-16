@@ -14,8 +14,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Search, Loader2 } from "lucide-react";
+import { Search, Loader2, LogOut } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { isAuthenticated, logout, getCurrentUser } from "@/lib/auth";
 
 export interface Product {
   code: string;
@@ -81,12 +82,14 @@ export default function Home() {
 
   useEffect(() => {
     // Check authentication
-    const auth = localStorage.getItem("authenticated");
-    if (!auth) {
-      router.push("/login");
-    } else {
-      setAuthenticated(true);
-    }
+    const checkAuth = () => {
+      if (!isAuthenticated()) {
+        router.push("/login");
+      } else {
+        setAuthenticated(true);
+      }
+    };
+    checkAuth();
   }, [router]);
 
   // Fetch products when category changes
@@ -150,7 +153,13 @@ export default function Home() {
     setCurrentPage(1);
   };
 
+  const handleLogout = () => {
+    logout();
+    router.push("/login");
+  };
+
   const selectedCategoryName = categories.find((cat) => cat.code === selectedCategory)?.name || "";
+  const currentUser = getCurrentUser();
 
   return (
     <div className="flex h-screen bg-background">
@@ -220,8 +229,25 @@ export default function Home() {
           {/* Header */}
           <div className="mb-6">
             <div className="flex items-center justify-between mb-4">
-              <h1 className="text-2xl font-bold text-foreground">제품보기</h1>
-              <ThemeToggle />
+              <div>
+                <h1 className="text-2xl font-bold text-foreground">제품보기</h1>
+                {currentUser && (
+                  <p className="text-sm text-muted-foreground mt-1">
+                    {currentUser.username}님 환영합니다
+                  </p>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                <ThemeToggle />
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={handleLogout}
+                  title="로그아웃"
+                >
+                  <LogOut className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
             
             {/* Search Section */}
